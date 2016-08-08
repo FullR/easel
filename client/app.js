@@ -46,7 +46,6 @@ function addStrokes(...strokesToAdd) {
 }
 
 function render() {
-  log("Rendering", strokes);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   Object.values(strokes)
     .sort((a, b) => a.timestamp - b.timestamp)
