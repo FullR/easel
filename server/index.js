@@ -7,7 +7,7 @@ const http = require("http").Server(app);
 const io = require("socket.io")(http);
 const Room = require("./room");
 const User = require("./user");
-const port = 8080;
+const port = process.env.PORT || 3000;
 
 app.use("/public", express.static(__dirname + "/../public"));
 app.get("*", (req, res) => createReadStream(`${__dirname}/../public/index.html`).pipe(res));
