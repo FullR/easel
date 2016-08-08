@@ -9,6 +9,9 @@ const Room = require("./room");
 const User = require("./user");
 const port = process.env.PORT || 3000;
 
+io.set("origins", "*:*");
+io.set("match origin protocol", true);
+
 app.use("/public", express.static(__dirname + "/../public"));
 app.get("*", (req, res) => createReadStream(`${__dirname}/../public/index.html`).pipe(res));
 
