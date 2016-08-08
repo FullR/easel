@@ -9,8 +9,10 @@ const Room = require("./room");
 const User = require("./user");
 const port = process.env.PORT || 3000;
 
-io.set("transports", ["xhr-polling"]);
-io.set("polling duration", 10);
+io.configure(function () {
+  io.set("transports", ["xhr-polling"]);
+  io.set("polling duration", 10);
+});
 
 app.use("/public", express.static(__dirname + "/../public"));
 app.get("*", (req, res) => createReadStream(`${__dirname}/../public/index.html`).pipe(res));
