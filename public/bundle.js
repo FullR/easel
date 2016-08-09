@@ -3,6 +3,10 @@
 
 require("babel-polyfill");
 
+var _victor = require("victor");
+
+var _victor2 = _interopRequireDefault(_victor);
+
 var _socket = require("./socket");
 
 var _socket2 = _interopRequireDefault(_socket);
@@ -14,6 +18,10 @@ var _stroke2 = _interopRequireDefault(_stroke);
 var _getMousePosition = require("../util/get-mouse-position");
 
 var _getMousePosition2 = _interopRequireDefault(_getMousePosition);
+
+var _getTouchPositions = require("../util/get-touch-positions");
+
+var _getTouchPositions2 = _interopRequireDefault(_getTouchPositions);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -28,35 +36,53 @@ var roomId = window.location.pathname;
 var renderStroke = _stroke2.default.render.bind(null, ctx);
 var minDistance = 5;
 
+var mouseEventHandler = function mouseEventHandler(fn) {
+  return function (event) {
+    return fn((0, _getMousePosition2.default)(canvas, event));
+  };
+};
+var touchEventHandler = function touchEventHandler(fn) {
+  return function (event) {
+    return fn(new _victor2.default(event.changedTouches[0].pageX, event.changedTouches[0].pageY));
+  };
+};
+
 var strokes = {};
 var currentStroke = null;
 
-canvas.addEventListener("mousedown", function (event) {
-  var point = (0, _getMousePosition2.default)(canvas, event);
+function startStroke(point) {
   currentStroke = new _stroke2.default();
   currentStroke.addSegment(point);
+  _socket2.default.emit("stroke", currentStroke);
   render();
-});
+}
 
-canvas.addEventListener("mousemove", function (event) {
+function dragStroke(point) {
   if (currentStroke) {
-    var point = (0, _getMousePosition2.default)(canvas, event);
     if (currentStroke.lastSegment.distance(point) < minDistance) return;
     currentStroke.addSegment(point);
+    _socket2.default.emit("stroke", currentStroke);
     render();
   }
-});
+}
 
-canvas.addEventListener("mouseup", function (event) {
+function endStroke(point) {
   if (currentStroke) {
-    var point = (0, _getMousePosition2.default)(canvas, event);
     currentStroke.addSegment(point);
     _socket2.default.emit("stroke", currentStroke);
     addStrokes(currentStroke);
     currentStroke = null;
     render();
   }
-});
+}
+
+canvas.addEventListener("mousedown", mouseEventHandler(startStroke));
+canvas.addEventListener("mousemove", mouseEventHandler(dragStroke));
+canvas.addEventListener("mouseup", mouseEventHandler(endStroke));
+
+canvas.addEventListener("touchstart", touchEventHandler(startStroke));
+canvas.addEventListener("touchmove", touchEventHandler(dragStroke));
+canvas.addEventListener("touchend", touchEventHandler(endStroke));
 
 function addStrokes() {
   for (var _len = arguments.length, strokesToAdd = Array(_len), _key = 0; _key < _len; _key++) {
@@ -69,7 +95,6 @@ function addStrokes() {
 }
 
 function render() {
-  log("Rendering", strokes);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   Object.values(strokes).sort(function (a, b) {
     return a.timestamp - b.timestamp;
@@ -96,7 +121,7 @@ _socket2.default.on("strokes", function (strokes) {
 
 _socket2.default.emit("join-room", roomId);
 
-},{"../util/get-mouse-position":315,"./socket":2,"./stroke":3,"babel-polyfill":4}],2:[function(require,module,exports){
+},{"../util/get-mouse-position":315,"../util/get-touch-positions":316,"./socket":2,"./stroke":3,"babel-polyfill":4,"victor":314}],2:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -210,7 +235,7 @@ Stroke.render = function (ctx, stroke) {
   stroke.render(ctx);
 };
 
-},{"../util/last":316,"../util/random-int":317,"color":15,"guid":310,"victor":314}],4:[function(require,module,exports){
+},{"../util/last":317,"../util/random-int":318,"color":15,"guid":310,"victor":314}],4:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -12642,11 +12667,36 @@ module.exports = function getMousePos(el, _ref) {
 },{"victor":314}],316:[function(require,module,exports){
 "use strict";
 
+var _victor = require("victor");
+
+var _victor2 = _interopRequireDefault(_victor);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+module.exports = function getMousePos(el, _ref) {
+  var touches = _ref.touches;
+
+  var _el$getBoundingClient = el.getBoundingClientRect();
+
+  var left = _el$getBoundingClient.left;
+  var top = _el$getBoundingClient.top;
+
+
+  return Array.from(touches).map(function (_ref2) {
+    var pageX = _ref2.pageX;
+    var pageY = _ref2.pageY;
+    return new _victor2.default(pageX, pageY);
+  });
+};
+
+},{"victor":314}],317:[function(require,module,exports){
+"use strict";
+
 module.exports = function last(arr) {
   return arr[arr.length - 1];
 };
 
-},{}],317:[function(require,module,exports){
+},{}],318:[function(require,module,exports){
 "use strict";
 
 module.exports = function randomInt(min, max) {

@@ -1,4 +1,5 @@
 import "babel-polyfill";
+import Victor from "victor";
 import socket from "./socket";
 import Stroke from "./stroke";
 import getMousePosition from "../util/get-mouse-position";
@@ -11,35 +12,45 @@ const roomId = window.location.pathname;
 const renderStroke = Stroke.render.bind(null, ctx);
 const minDistance = 5;
 
+const mouseEventHandler = (fn) => (event) => fn(getMousePosition(canvas, event));
+const touchEventHandler = (fn) => (event) => fn(new Victor(event.changedTouches[0].pageX, event.changedTouches[0].pageY));
+
 const strokes = {};
 let currentStroke = null;
 
-canvas.addEventListener("mousedown", (event) => {
-  const point = getMousePosition(canvas, event);
+function startStroke(point) {
   currentStroke = new Stroke();
   currentStroke.addSegment(point);
+  socket.emit("stroke", currentStroke);
   render();
-});
+}
 
-canvas.addEventListener("mousemove", (event) => {
+function dragStroke(point) {
   if(currentStroke) {
-    const point = getMousePosition(canvas, event);
     if(currentStroke.lastSegment.distance(point) < minDistance) return;
     currentStroke.addSegment(point);
+    socket.emit("stroke", currentStroke);
     render();
   }
-});
+}
 
-canvas.addEventListener("mouseup", (event) => {
+function endStroke(point) {
   if(currentStroke) {
-    const point = getMousePosition(canvas, event);
     currentStroke.addSegment(point);
     socket.emit("stroke", currentStroke);
     addStrokes(currentStroke);
     currentStroke = null;
     render();
   }
-});
+}
+
+canvas.addEventListener("mousedown", mouseEventHandler(startStroke));
+canvas.addEventListener("mousemove", mouseEventHandler(dragStroke));
+canvas.addEventListener("mouseup", mouseEventHandler(endStroke));
+
+canvas.addEventListener("touchstart", touchEventHandler(startStroke));
+canvas.addEventListener("touchmove", touchEventHandler(dragStroke));
+canvas.addEventListener("touchend", touchEventHandler(endStroke));
 
 function addStrokes(...strokesToAdd) {
   strokesToAdd.forEach((stroke) => strokes[stroke.id] = new Stroke(stroke));
